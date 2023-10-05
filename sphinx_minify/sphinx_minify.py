@@ -3,14 +3,17 @@ from rjsmin import jsmin
 from rcssmin import cssmin
 from htmlmin import minify as htmlmin
 import logging
+from multiprocessing import Pool
+import shutil
 
-# Function to minify JavaScript and CSS based on file extension
-def minify_file(input_file):
+# Function to minify JavaScript, CSS and HTML based on file extension
+def minify_file(input_file, output_file):
     try:
         with open(input_file, 'r') as file:
             file_contents = file.read()
     except UnicodeDecodeError as e:
-        logging.warning(f"File {input_file} is not a text file!")
+        logging.debug(f"File {input_file} is not a text file! Copying without modification.")
+        shutil.copy2(input_file, output_file)
         return
 
     if input_file.endswith('.js'):
@@ -24,33 +27,44 @@ def minify_file(input_file):
             remove_empty_space=True
         )
     else:
-        logging.warning(f"Unable to minify {input_file}")
+        logging.debug(f"Unable to minify {input_file}. Copying without modification.")
+        shutil.copy2(input_file, output_file)
         return
 
-    return minified_contents
+    with open(output_file, 'w') as file:
+        file.write(minified_contents)
 
-# Function to recursively traverse a directory and minify files
-def minify_directory(input_directory, output_directory):
+# Function to process a single file and create the output file path
+def process_file(input_file, input_directory, output_directory):
+    relative_path = os.path.relpath(input_file, input_directory)
+    output_file = os.path.join(output_directory, relative_path)
+    
+    # Ensure the directory structure for the output file exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    minify_file(input_file, output_file)
+
+# Function to recursively traverse a directory and minify files using multiprocessing
+def minify_directory(input_directory, output_directory, num_processes):
+    file_list = []
     for root, _, files in os.walk(input_directory):
         for singlefile in files:
-            if ".min" in singlefile:
-                continue
             input_file = os.path.join(root, singlefile)
-            relative_path = os.path.relpath(input_file, input_directory)
-            output_file = os.path.join(output_directory, relative_path)
-            
-            # Ensure the output directory structure exists
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            
-            output = minify_file(input_file)
-            if output:
-                with open(output_file, 'w') as file:
-                    file.write(output)
+            file_list.append(input_file)
+
+    # Create a multiprocessing pool
+    with Pool(processes=num_processes) as pool:
+        # Create processes
+        # A list will be created for the processes containing 
+        # all the required arguments for the function in tripplets
+        trippletlist = [(input_file, input_directory, output_directory) for input_file in file_list]
+        pool.starmap(process_file, trippletlist)
 
 def main():
     input_directory = "doc/build/html_copy"
     output_directory = "doc/build/html_copy/out"
+    num_processes = 4
     logging.info("Starting to minify all output files...")
-    minify_directory(input_directory, output_directory)
+    minify_directory(input_directory, output_directory, num_processes)
 
 main()
