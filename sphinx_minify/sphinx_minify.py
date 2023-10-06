@@ -5,6 +5,40 @@ from htmlmin import minify as htmlmin
 import logging
 from multiprocessing import Pool
 import shutil
+import argparse
+import json
+
+def get_parser():
+    # Format the output of help
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument(
+        '--input-directory',
+        metavar='<input_directory>',
+        required=True,
+        help='Input directory for the HTML output of sphinx.'
+    )
+    parser.add_argument(
+        '--output-directory',
+        metavar='<input_directory>',
+        required=True,
+        help='Output directory for the minified output.'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Option enables Debug output.'
+    )
+    parser.add_argument(
+        '--processes',
+        metavar='<processes>',
+        default=4,
+        help='Number of processes for minification.'
+             'Default: 4'
+    )
+    args = parser.parse_args()
+    return args
+
 
 # Function to minify JavaScript, CSS and HTML based on file extension
 def minify_file(input_file, output_file):
@@ -36,13 +70,20 @@ def minify_file(input_file, output_file):
 
 # Function to process a single file and create the output file path
 def process_file(input_file, input_directory, output_directory):
+    print(input_directory)
+    print("test")
     relative_path = os.path.relpath(input_file, input_directory)
     output_file = os.path.join(output_directory, relative_path)
     
     # Ensure the directory structure for the output file exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    
+
+    # Convert input and output file paths to absolute paths
+    input_file = os.path.abspath(input_file)
+    output_file = os.path.abspath(output_file)
+
     minify_file(input_file, output_file)
+    return 0
 
 # Function to recursively traverse a directory and minify files using multiprocessing
 def minify_directory(input_directory, output_directory, num_processes):
@@ -52,6 +93,8 @@ def minify_directory(input_directory, output_directory, num_processes):
             input_file = os.path.join(root, singlefile)
             file_list.append(input_file)
 
+    logging.debug(f"Number of files to process: {len(file_list)}")
+
     # Create a multiprocessing pool
     with Pool(processes=num_processes) as pool:
         # Create processes
@@ -60,11 +103,24 @@ def minify_directory(input_directory, output_directory, num_processes):
         trippletlist = [(input_file, input_directory, output_directory) for input_file in file_list]
         pool.starmap(process_file, trippletlist)
 
+    # for input_file in file_list:
+    #     process_file(input_file, input_directory, output_directory)
+
 def main():
-    input_directory = "doc/build/html_copy"
-    output_directory = "doc/build/html_copy/out"
-    num_processes = 4
+
+    args = get_parser()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    
     logging.info("Starting to minify all output files...")
-    minify_directory(input_directory, output_directory, num_processes)
+
+    # Convert input and output directories to absolute paths
+    args.input_directory = os.path.abspath(args.input_directory)
+    args.output_directory = os.path.abspath(args.output_directory)
+
+    print(args.input_directory)
+
+    minify_directory(args.input_directory, args.output_directory, int(args.processes))
 
 main()
