@@ -70,20 +70,13 @@ def minify_file(input_file, output_file):
 
 # Function to process a single file and create the output file path
 def process_file(input_file, input_directory, output_directory):
-    print(input_directory)
-    print("test")
     relative_path = os.path.relpath(input_file, input_directory)
     output_file = os.path.join(output_directory, relative_path)
     
     # Ensure the directory structure for the output file exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-    # Convert input and output file paths to absolute paths
-    input_file = os.path.abspath(input_file)
-    output_file = os.path.abspath(output_file)
-
     minify_file(input_file, output_file)
-    return 0
 
 # Function to recursively traverse a directory and minify files using multiprocessing
 def minify_directory(input_directory, output_directory, num_processes):
@@ -103,15 +96,14 @@ def minify_directory(input_directory, output_directory, num_processes):
         trippletlist = [(input_file, input_directory, output_directory) for input_file in file_list]
         pool.starmap(process_file, trippletlist)
 
-    # for input_file in file_list:
-    #     process_file(input_file, input_directory, output_directory)
-
 def main():
 
     args = get_parser()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
     
     logging.info("Starting to minify all output files...")
 
@@ -119,8 +111,4 @@ def main():
     args.input_directory = os.path.abspath(args.input_directory)
     args.output_directory = os.path.abspath(args.output_directory)
 
-    print(args.input_directory)
-
     minify_directory(args.input_directory, args.output_directory, int(args.processes))
-
-main()
