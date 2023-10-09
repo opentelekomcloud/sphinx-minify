@@ -69,7 +69,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-doc/build/out
+doc/build/html
 
 
 # PyBuilder
