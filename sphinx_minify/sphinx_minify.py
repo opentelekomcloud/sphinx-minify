@@ -6,7 +6,7 @@ import logging
 from multiprocessing import Pool
 import shutil
 import argparse
-import json
+
 
 def get_parser():
     # Format the output of help
@@ -45,8 +45,11 @@ def minify_file(input_file, output_file):
     try:
         with open(input_file, 'r') as file:
             file_contents = file.read()
-    except UnicodeDecodeError as e:
-        logging.debug(f"File {input_file} is not a text file! Copying without modification.")
+    except UnicodeDecodeError:
+        logging.debug(
+            f"File {input_file} is not a text file! "
+            + "Copying without modification."
+        )
         shutil.copy2(input_file, output_file)
         return
 
@@ -61,24 +64,30 @@ def minify_file(input_file, output_file):
             remove_empty_space=True
         )
     else:
-        logging.debug(f"Unable to minify {input_file}. Copying without modification.")
+        logging.debug(
+            f"Unable to minify {input_file}. "
+            + "Copying without modification."
+        )
         shutil.copy2(input_file, output_file)
         return
 
     with open(output_file, 'w') as file:
         file.write(minified_contents)
 
+
 # Function to process a single file and create the output file path
 def process_file(input_file, input_directory, output_directory):
     relative_path = os.path.relpath(input_file, input_directory)
     output_file = os.path.join(output_directory, relative_path)
-    
+
     # Ensure the directory structure for the output file exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     minify_file(input_file, output_file)
 
-# Function to recursively traverse a directory and minify files using multiprocessing
+
+# Function to recursively traverse a directory
+# and minify files using multiprocessing
 def minify_directory(input_directory, output_directory, num_processes):
     file_list = []
     for root, _, files in os.walk(input_directory):
@@ -91,10 +100,12 @@ def minify_directory(input_directory, output_directory, num_processes):
     # Create a multiprocessing pool
     with Pool(processes=num_processes) as pool:
         # Create processes
-        # A list will be created for the processes containing 
+        # A list will be created for the processes containing
         # all the required arguments for the function in tripplets
-        trippletlist = [(input_file, input_directory, output_directory) for input_file in file_list]
+        trippletlist = [(input_file, input_directory, output_directory)
+                        for input_file in file_list]
         pool.starmap(process_file, trippletlist)
+
 
 def main():
 
@@ -104,11 +115,15 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    
+
     logging.info("Starting to minify all output files...")
 
     # Convert input and output directories to absolute paths
     args.input_directory = os.path.abspath(args.input_directory)
     args.output_directory = os.path.abspath(args.output_directory)
 
-    minify_directory(args.input_directory, args.output_directory, int(args.processes))
+    minify_directory(
+        args.input_directory,
+        args.output_directory,
+        int(args.processes)
+    )
