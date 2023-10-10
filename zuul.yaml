@@ -2,6 +2,8 @@
 - project:
     merge-mode: squash-merge
     default-branch: main
+    templates:
+      - publish-to-pypi
     check:
       jobs:
         - otc-tox-pep8
