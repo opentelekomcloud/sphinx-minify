@@ -6,6 +6,7 @@ import logging
 from multiprocessing import Pool
 import shutil
 import argparse
+import cgi
 
 
 def get_parser():
