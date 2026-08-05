@@ -40,7 +40,7 @@ def get_parser():
     return args
 
 
-# Function to minify JavaScript, CSS and HTML based on file extension
+# Function to minify JavaScript, CSS and HTML based on file extensionm
 def minify_file(input_file, output_file):
     try:
         with open(input_file, 'r') as file:
